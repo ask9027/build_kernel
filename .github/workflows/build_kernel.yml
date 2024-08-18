@@ -1,0 +1,93 @@
+name: Build Kernel
+on:
+  workflow_dispatch:
+    inputs:
+      kernel_type:
+        description: 'Kernel Type perfkernel or alfakernel'
+        required: true
+        default: 'alfakernel'
+        type: string
+
+jobs:
+  Build-Kernel:
+    strategy:
+      fail-fast: false
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    env:
+      KERNEL_NAME: "courbet"
+      ARCH: "arm64"
+      SUBARCH: "arm64"
+      KBUILD_BUILD_USER: "ask9027"
+      KBUILD_BUILD_HOST: "github"
+
+    steps:
+    - name: update and download required packages
+      run: sudo apt update && sudo apt install -y git bc bison flex libssl-dev make automake build-essential curl zip clang lld gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi libdebuginfod1 elfutils
+
+#    - name: Set up AOSP Clang
+#      run: |
+#        mkdir -p ${GITHUB_WORKSPACE}/aosp-clang
+#        cd ${GITHUB_WORKSPACE}/aosp-clang
+#        curl -LO https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/main/clang-r522817.tar.gz
+#        tar -xzf clang-r522817.tar.gz
+#        export PATH="$GITHUB_WORKSPACE/aosp-clang/bin:$PATH"
+#
+#    - name: setup neutron clang
+#      run: |
+#        mkdir -p "${GITHUB_WORKSPACE}/toolchains/neutron-clang"
+#        cd "${GITHUB_WORKSPACE}/toolchains/neutron-clang"
+#        curl -LO "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman"
+#        chmod +x antman
+#        ./antman -S=05012024
+#        ./antman --patch=glibc
+#        cd ${GITHUB_WORKSPACE}
+#
+    - name: clone kernel source
+      run: |
+        cd ${GITHUB_WORKSPACE}
+        if [ "${{ github.event.inputs.kernel_type }}" == "alfakernel" ]; then
+          KERNEL_DIR='kernel_xiaomi_sm6150'
+          echo "KERNEL_DIR=$KERNEL_DIR" >> $GITHUB_ENV
+          git clone --recurse-submodules https://github.com/ask9027/kernel_xiaomi_sm6150.git -b quattordici-miui
+        else
+          KERNEL_DIR='kernel_xiaomi_courbet'
+          echo "KERNEL_DIR=$KERNEL_DIR" >> $GITHUB_ENV
+          git clone https://github.com/omer12544/kernel_xiaomi_courbet.git -b perf-ksu-miui
+        fi
+
+    - name: build kernel from source
+      run: |
+        cd ${GITHUB_WORKSPACE}/${KERNEL_DIR}
+        export ARCH=${ARCH}
+        make O=out ${KERNEL_NAME}_defconfig
+        make -j$(nproc --all) \
+        O=out CC=clang \
+        CROSS_COMPILE=aarch64-linux-gnu- \
+        CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+        CONFIG_NO_ERROR_ON_MISMATCH=y
+
+        KERNEL_VERSION=$(make kernelversion)
+        echo "KERNEL_VERSION=$KERNEL_VERSION" >> $GITHUB_ENV
+
+        mkdir ${GITHUB_WORKSPACE}/output
+        cp out/arch/arm64/boot/Image.gz ${GITHUB_WORKSPACE}/output/
+        cp out/arch/arm64/boot/dtb.img ${GITHUB_WORKSPACE}/output/
+        cp out/arch/arm64/boot/dtbo.img ${GITHUB_WORKSPACE}/output/
+        cd ${GITHUB_WORKSPACE}
+    - name: create anykernel3 zip
+      run: |
+        git clone https://github.com/ask9027/AnyKernel3.git -b ${{ github.event.inputs.kernel_type }}
+        cp output/* AnyKernel3/
+        cd AnyKernel3
+        buildtime=$(date '+%Y%m%d-%H%M%S')
+        zip -r9 ../${{ github.event.inputs.kernel_type }}-miui-${{ env.KERNEL_VERSION }}-${{ env.KERNEL_NAME }}-${buildtime}.zip * -x .git README.md *placeholder
+        cd ${GITHUB_WORKSPACE}
+
+    - name: upload kernel output
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ github.event.inputs.kernel_type }}-miui-${{ env.KERNEL_VERSION }}-${{ env.KERNEL_NAME }}
+        path: ${{ github.event.inputs.kernel_type }}-miui*.zip
+
