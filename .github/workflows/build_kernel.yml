@@ -3,10 +3,15 @@ on:
   workflow_dispatch:
     inputs:
       kernel_type:
-        description: 'Kernel Type perfkernel or alfakernel'
+        description: 'Kernel Type PerfKernel or AlfaKernel'
         required: true
-        default: 'alfakernel'
+        default: 'AlfaKernel'
         type: string
+      is_release:
+        description: 'Kernel Release at github true or false'
+        required: true
+        default: false
+        type: boolean
 
 jobs:
   Build-Kernel:
@@ -21,6 +26,8 @@ jobs:
       SUBARCH: "arm64"
       KBUILD_BUILD_USER: "ask9027"
       KBUILD_BUILD_HOST: "github"
+      KERNEL_TYPE: "${{ inputs.kernel_type }}"
+      IS_RELEASE: "${{ inputs.is_release }}"
 
     steps:
     - name: update and download required packages
@@ -47,7 +54,7 @@ jobs:
     - name: clone kernel source
       run: |
         cd ${GITHUB_WORKSPACE}
-        if [ "${{ github.event.inputs.kernel_type }}" == "alfakernel" ]; then
+        if [ "${KERNEL_TYPE}" == "AlfaKernel" ]; then
           KERNEL_DIR='kernel_xiaomi_sm6150'
           echo "KERNEL_DIR=$KERNEL_DIR" >> $GITHUB_ENV
           git clone --recurse-submodules https://github.com/ask9027/kernel_xiaomi_sm6150.git -b quattordici-miui
@@ -76,18 +83,32 @@ jobs:
         cp out/arch/arm64/boot/dtb.img ${GITHUB_WORKSPACE}/output/
         cp out/arch/arm64/boot/dtbo.img ${GITHUB_WORKSPACE}/output/
         cd ${GITHUB_WORKSPACE}
+
     - name: create anykernel3 zip
       run: |
-        git clone https://github.com/ask9027/AnyKernel3.git -b ${{ github.event.inputs.kernel_type }}
+        git clone https://github.com/ask9027/AnyKernel3.git -b ${KERNEL_TYPE,,}
         cp output/* AnyKernel3/
         cd AnyKernel3
-        buildtime=$(date '+%Y%m%d-%H%M%S')
-        zip -r9 ../${{ github.event.inputs.kernel_type }}-miui-${{ env.KERNEL_VERSION }}-${{ env.KERNEL_NAME }}-${buildtime}.zip * -x .git README.md *placeholder
+        buildTime=$(date '+%Y%m%d-%H%M%S')
+        zip -r9 ../${KERNEL_TYPE}-miui-${KERNEL_VERSION}-${KERNEL_NAME}-${buildTime}.zip * -x .git README.md *placeholder
         cd ${GITHUB_WORKSPACE}
 
     - name: upload kernel output
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ github.event.inputs.kernel_type }}-miui-${{ env.KERNEL_VERSION }}-${{ env.KERNEL_NAME }}
-        path: ${{ github.event.inputs.kernel_type }}-miui*.zip
+        name: ${{ env.KERNEL_TYPE }}-miui-${{ env.KERNEL_VERSION }}-${{ env.KERNEL_NAME }}
+        path: ${{ env.KERNEL_TYPE }}-miui*.zip
+
+    - name: Create release
+      if: ${{ env.IS_RELEASE == 'true' }}
+      uses: softprops/action-gh-release@v2
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        tag_name: v${{ env.KERNEL_VERSION }}
+        name: "Kernel Version ${{ env.KERNEL_VERSION }}"
+        body: '${{ env.KERNEL_VERSION }}-${{ env.KERNEL_NAME }} for MIUI Stock ROM'
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+        files: ${{ env.KERNEL_TYPE }}-miui*.zip
 
