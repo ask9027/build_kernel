@@ -22,6 +22,7 @@ jobs:
       contents: write
     env:
       KERNEL_NAME: "courbet"
+      KERNEL_DIR: "kernel_xiaomi"
       ARCH: "arm64"
       SUBARCH: "arm64"
       KBUILD_BUILD_USER: "ask9027"
@@ -32,14 +33,6 @@ jobs:
     steps:
     - name: update and download required packages
       run: sudo apt update && sudo apt install -y git bc bison flex libssl-dev make automake build-essential curl zip clang lld gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi libdebuginfod1 elfutils
-
-#    - name: Set up AOSP Clang
-#      run: |
-#        mkdir -p ${GITHUB_WORKSPACE}/aosp-clang
-#        cd ${GITHUB_WORKSPACE}/aosp-clang
-#        curl -LO https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/main/clang-r522817.tar.gz
-#        tar -xzf clang-r522817.tar.gz
-#        export PATH="$GITHUB_WORKSPACE/aosp-clang/bin:$PATH"
 #
 #    - name: setup neutron clang
 #      run: |
@@ -55,13 +48,9 @@ jobs:
       run: |
         cd ${GITHUB_WORKSPACE}
         if [ "${KERNEL_TYPE}" == "AlfaKernel" ]; then
-          KERNEL_DIR='kernel_xiaomi_sm6150'
-          echo "KERNEL_DIR=$KERNEL_DIR" >> $GITHUB_ENV
-          git clone --recurse-submodules https://github.com/ask9027/kernel_xiaomi_sm6150.git -b quattordici-miui
+          git clone --recurse-submodules https://github.com/ask9027/kernel_xiaomi_sm6150.git -b quattordici-miui ${KERNEL_DIR}
         else
-          KERNEL_DIR='kernel_xiaomi_courbet'
-          echo "KERNEL_DIR=$KERNEL_DIR" >> $GITHUB_ENV
-          git clone https://github.com/omer12544/kernel_xiaomi_courbet.git -b perf-ksu-miui
+          git clone https://github.com/omer12544/kernel_xiaomi_courbet.git -b perf-ksu-miui ${KERNEL_DIR}
         fi
 
     - name: build kernel from source
@@ -106,7 +95,7 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         tag_name: v${{ env.KERNEL_VERSION }}
         name: "Kernel Version ${{ env.KERNEL_VERSION }}"
-        body: '${{ env.KERNEL_VERSION }}-${{ env.KERNEL_NAME }} for MIUI Stock ROM'
+        body: '${{ env.KERNEL_VERSION }}-${{ env.KERNEL_NAME }} for Stock MIUI-ROM'
         draft: false
         prerelease: false
         generate_release_notes: false
