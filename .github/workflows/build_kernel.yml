@@ -50,7 +50,7 @@ jobs:
         if [ "${KERNEL_TYPE}" == "AlfaKernel" ]; then
           git clone --recurse-submodules https://github.com/ask9027/kernel_xiaomi_sm6150.git -b quattordici-miui ${KERNEL_DIR}
         else
-          git clone https://github.com/omer12544/kernel_xiaomi_courbet.git -b perf-ksu-miui ${KERNEL_DIR}
+          git clone https://github.com/ask9027/kernel_xiaomi_courbet.git -b perf-ksu-miui ${KERNEL_DIR}
         fi
 
     - name: build kernel from source
