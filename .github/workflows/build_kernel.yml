@@ -10,6 +10,14 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: write
+    env:
+      KERNEL_NAME: "courbet"
+      KERNEL_DIR: "courbet-kernel"
+      ARCH: "arm64"
+      SUBARCH: "arm64"
+      KBUILD_BUILD_USER: "ask9027"
+      KBUILD_BUILD_HOST: "github"
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
