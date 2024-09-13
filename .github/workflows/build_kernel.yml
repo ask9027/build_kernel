@@ -1,17 +1,7 @@
 name: Build Kernel
+
 on:
   workflow_dispatch:
-    inputs:
-      kernel_type:
-        description: 'Kernel Type PerfKernel or AlfaKernel'
-        required: true
-        default: 'AlfaKernel'
-        type: string
-      is_release:
-        description: 'Kernel Release at github true or false'
-        required: true
-        default: false
-        type: boolean
 
 jobs:
   Build-Kernel:
@@ -20,37 +10,42 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: write
-    env:
-      KERNEL_NAME: "courbet"
-      KERNEL_DIR: "kernel_xiaomi"
-      ARCH: "arm64"
-      SUBARCH: "arm64"
-      KBUILD_BUILD_USER: "ask9027"
-      KBUILD_BUILD_HOST: "github"
-      KERNEL_TYPE: "${{ inputs.kernel_type }}"
-      IS_RELEASE: "${{ inputs.is_release }}"
-
     steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Install jq (for JSON parsing)
+      run: sudo apt-get install jq
+
+    - name: Read JSON configuration
+      id: json_data
+      run: |
+        JSON_FILE="config.json"
+        # Read and export variables from JSON
+        KERNEL_URL=$(jq -r '.["kernel-url"]' $JSON_FILE)
+        KERNEL_BRANCH=$(jq -r '.["kernel-branch"]' $JSON_FILE)
+        KERNEL_TYPE=$(jq -r '.["kernel-type"]' $JSON_FILE)
+        IS_RELEASE=$(jq -r '.["is_release"]' $JSON_FILE)
+        RECURSE_SUBMODULE=$(jq -r '.["recurse-submodule"]' $JSON_FILE)
+
+        # Export values for future steps
+        echo "KERNEL_URL=$KERNEL_URL" >> $GITHUB_ENV
+        echo "KERNEL_BRANCH=$KERNEL_BRANCH" >> $GITHUB_ENV
+        echo "KERNEL_TYPE=$KERNEL_TYPE" >> $GITHUB_ENV
+        echo "IS_RELEASE=$IS_RELEASE" >> $GITHUB_ENV
+        echo "RECURSE_SUBMODULE=$RECURSE_SUBMODULE" >> $GITHUB_ENV
+
     - name: update and download required packages
       run: sudo apt update && sudo apt install -y git bc bison flex libssl-dev make automake build-essential curl zip clang lld gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi libdebuginfod1 elfutils
-#
-#    - name: setup neutron clang
-#      run: |
-#        mkdir -p "${GITHUB_WORKSPACE}/toolchains/neutron-clang"
-#        cd "${GITHUB_WORKSPACE}/toolchains/neutron-clang"
-#        curl -LO "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman"
-#        chmod +x antman
-#        ./antman -S=05012024
-#        ./antman --patch=glibc
-#        cd ${GITHUB_WORKSPACE}
-#
+
     - name: clone kernel source
       run: |
         cd ${GITHUB_WORKSPACE}
-        if [ "${KERNEL_TYPE}" == "AlfaKernel" ]; then
-          git clone --recurse-submodules https://github.com/ask9027/kernel_xiaomi_sm6150.git -b quattordici-miui ${KERNEL_DIR}
+        # Determine whether to use --recurse-submodules based on JSON value
+        if [ "$RECURSE_SUBMODULE" = "true" ]; then
+          git clone --recurse-submodules ${KERNEL_URL} -b ${KERNEL_BRANCH} ${KERNEL_DIR}
         else
-          git clone https://github.com/ask9027/kernel_xiaomi_courbet.git -b perf-ksu-miui ${KERNEL_DIR}
+          git clone ${KERNEL_URL} -b ${KERNEL_BRANCH} ${KERNEL_DIR}
         fi
 
     - name: build kernel from source
@@ -73,20 +68,37 @@ jobs:
         cp out/arch/arm64/boot/dtbo.img ${GITHUB_WORKSPACE}/output/
         cd ${GITHUB_WORKSPACE}
 
+    - name: Check KERNEL_BRANCH and Update KERNEL_TYPE
+      run: |
+        # Modify KERNEL_TYPE based on the branch content
+        if [[ "${KERNEL_BRANCH}" == *"ksu-miui"* ]]; then
+          KERNEL_TYPE="${KERNEL_TYPE}-ksu-miui"
+        elif [[ "${KERNEL_BRANCH}" == *"ksu"* ]]; then
+          KERNEL_TYPE="${KERNEL_TYPE}-ksu"
+        elif [[ "${KERNEL_BRANCH}" == *"miui"* ]]; then
+          KERNEL_TYPE="${KERNEL_TYPE}-miui"
+        fi
+
+        # Export the updated KERNEL_TYPE
+        echo "KERNEL_TYPE=${KERNEL_TYPE}" >> $GITHUB_ENV
+        echo "Updated KERNEL_TYPE: $KERNEL_TYPE"
+
     - name: create anykernel3 zip
       run: |
         git clone https://github.com/ask9027/AnyKernel3.git -b ${KERNEL_TYPE,,}
         cp output/* AnyKernel3/
         cd AnyKernel3
         buildTime=$(date '+%Y%m%d-%H%M%S')
-        zip -r9 ../${KERNEL_TYPE}-miui-${KERNEL_VERSION}-${KERNEL_NAME}-${buildTime}.zip * -x .git README.md *placeholder
+
+        # Use updated KERNEL_TYPE for the zip file name
+        zip -r9 ../${KERNEL_TYPE}-${KERNEL_VERSION}-${KERNEL_NAME}-${buildTime}.zip * -x .git README.md *placeholder
         cd ${GITHUB_WORKSPACE}
 
     - name: upload kernel output
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ env.KERNEL_TYPE }}-miui-${{ env.KERNEL_VERSION }}-${{ env.KERNEL_NAME }}
-        path: ${{ env.KERNEL_TYPE }}-miui*.zip
+        name: ${{ env.KERNEL_TYPE }}-${{ env.KERNEL_VERSION }}-${{ env.KERNEL_NAME }}
+        path: ${{ env.KERNEL_TYPE }}*.zip
 
     - name: Create release
       if: ${{ env.IS_RELEASE == 'true' }}
@@ -95,8 +107,8 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         tag_name: v${{ env.KERNEL_VERSION }}
         name: "Kernel Version ${{ env.KERNEL_VERSION }}"
-        body: '${{ env.KERNEL_VERSION }}-${{ env.KERNEL_NAME }} for Stock MIUI-ROM'
+        body: '${{ env.KERNEL_VERSION }}-${{ env.KERNEL_TYPE }} for ${{ env.KERNEL_NAME }}'
         draft: false
         prerelease: false
         generate_release_notes: false
-        files: ${{ env.KERNEL_TYPE }}-miui*.zip
+        files: ${{ env.KERNEL_TYPE }}*.zip

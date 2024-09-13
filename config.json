@@ -1,0 +1,7 @@
+{
+    "kernel-type": "AlfaKernel",
+    "kernel-url": "https://github.com/ask9027/kernel_xiaomi_sm6150.git",
+    "kernel-branch": "quattordici-miui",
+    "is_release": false,
+    "recurse-submodule": true
+}
