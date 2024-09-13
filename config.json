@@ -1,7 +1,7 @@
 {
-    "kernel-type": "AlfaKernel",
-    "kernel-url": "https://github.com/ask9027/kernel_xiaomi_sm6150.git",
-    "kernel-branch": "quattordici-miui",
+    "kernel-type": "PerfKernel",
+    "kernel-url": "https://github.com/ask9027/kernel_xiaomi_courbet.git",
+    "kernel-branch": "perf-miui",
     "is_release": false,
-    "recurse-submodule": true
+    "recurse-submodule": false
 }
