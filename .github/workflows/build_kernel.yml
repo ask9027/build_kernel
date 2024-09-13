@@ -70,6 +70,10 @@ jobs:
         CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
         CONFIG_NO_ERROR_ON_MISMATCH=y
 
+
+        BUILD_TIME=$(date '+%Y%m%d-%H%M%S')
+        echo "BUILD_TIME=$BUILD_TIME" >> $GITHUB_ENV
+        
         KERNEL_VERSION=$(make kernelversion)
         echo "KERNEL_VERSION=$KERNEL_VERSION" >> $GITHUB_ENV
 
@@ -79,8 +83,12 @@ jobs:
         cp out/arch/arm64/boot/dtbo.img ${GITHUB_WORKSPACE}/output/
         cd ${GITHUB_WORKSPACE}
 
-    - name: Check KERNEL_BRANCH and Update KERNEL_TYPE
+    - name: create anykernel3 zip
       run: |
+        git clone https://github.com/ask9027/AnyKernel3.git -b ${KERNEL_TYPE,,}
+        cp output/* AnyKernel3/
+        cd AnyKernel3
+
         # Modify KERNEL_TYPE based on the branch content
         if [[ "${KERNEL_BRANCH}" == *"ksu-miui"* ]]; then
           KERNEL_TYPE="${KERNEL_TYPE}-ksu-miui"
@@ -94,15 +102,8 @@ jobs:
         echo "KERNEL_TYPE=${KERNEL_TYPE}" >> $GITHUB_ENV
         echo "Updated KERNEL_TYPE: $KERNEL_TYPE"
 
-    - name: create anykernel3 zip
-      run: |
-        git clone https://github.com/ask9027/AnyKernel3.git -b ${KERNEL_TYPE,,}
-        cp output/* AnyKernel3/
-        cd AnyKernel3
-        buildTime=$(date '+%Y%m%d-%H%M%S')
-
         # Use updated KERNEL_TYPE for the zip file name
-        zip -r9 ../${KERNEL_TYPE}-${KERNEL_VERSION}-${KERNEL_NAME}-${buildTime}.zip * -x .git README.md *placeholder
+        zip -r9 ../${KERNEL_TYPE}-${KERNEL_VERSION}-${KERNEL_NAME}-${BUILD_TIME}.zip * -x .git README.md *placeholder
         cd ${GITHUB_WORKSPACE}
 
     - name: upload kernel output
