@@ -2,6 +2,6 @@
     "kernel-type": "PerfKernel",
     "kernel-url": "https://github.com/ask9027/kernel_xiaomi_courbet.git",
     "kernel-branch": "perf-miui",
-    "is_release": false,
+    "is_release": true,
     "recurse-submodule": false
 }
