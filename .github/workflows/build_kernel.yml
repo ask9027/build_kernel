@@ -1,10 +1,33 @@
 name: Build Kernel
 
 on:
-  push:
-    paths:
-      - "config.json"
   workflow_dispatch:
+    inputs:
+      kernel_url:
+        description: 'Kernel github url perf-kernel: https://github.com/ask9027/kernel_xiaomi_courbet.git, alfakernel: https://github.com/ask9027/kernel_xiaomi_sm6150.git'
+        required: true
+        default: 'https://github.com/ask9027/kernel_xiaomi_courbet.git'
+        type: string
+      kernel_branch:
+        description: "github branch like 'perf-ksu-miui'"
+        required: true
+        default: 'perf-ksu-miui'
+        type: string
+      kernel_type:
+        description: 'Kernel Type PerfKernel or AlfaKernel'
+        required: true
+        default: 'PerfKernel'
+        type: string
+      recurse_submodule:
+        description: "some kernel source use submodule(true/false)"
+        required: true
+        default: false
+        type: boolean
+      is_release:
+        description: 'Kernel Release at github true or false'
+        required: true
+        default: false
+        type: boolean
 
 jobs:
   Build-Kernel:
@@ -20,6 +43,12 @@ jobs:
       SUBARCH: "arm64"
       KBUILD_BUILD_USER: "ask9027"
       KBUILD_BUILD_HOST: "github"
+      KERNEL_URL: ${{ github.event.inputs.kernel_url }}
+      KERNEL_BRANCH: ${{ github.event.inputs.kernel_branch }}
+      KERNEL_TYPE: ${{ github.event.inputs.kernel_type }}
+      IS_RELEASE: ${{ github.event.inputs.is_release }}
+      RECURSE_SUBMODULE: ${{ github.event.inputs.recurse_submodule }}
+      KERNEL_VERSION: 'v0000'
 
     steps:
     - name: Checkout repository
@@ -28,31 +57,12 @@ jobs:
     - name: Install jq (for JSON parsing)
       run: sudo apt-get install jq
 
-    - name: Read JSON configuration
-      id: json_data
-      run: |
-        JSON_FILE="config.json"
-        # Read and export variables from JSON
-        KERNEL_URL=$(jq -r '.["kernel-url"]' $JSON_FILE)
-        KERNEL_BRANCH=$(jq -r '.["kernel-branch"]' $JSON_FILE)
-        KERNEL_TYPE=$(jq -r '.["kernel-type"]' $JSON_FILE)
-        IS_RELEASE=$(jq -r '.["is_release"]' $JSON_FILE)
-        RECURSE_SUBMODULE=$(jq -r '.["recurse-submodule"]' $JSON_FILE)
-
-        # Export values for future steps
-        echo "KERNEL_URL=$KERNEL_URL" >> $GITHUB_ENV
-        echo "KERNEL_BRANCH=$KERNEL_BRANCH" >> $GITHUB_ENV
-        echo "KERNEL_TYPE=$KERNEL_TYPE" >> $GITHUB_ENV
-        echo "IS_RELEASE=$IS_RELEASE" >> $GITHUB_ENV
-        echo "RECURSE_SUBMODULE=$RECURSE_SUBMODULE" >> $GITHUB_ENV
-
     - name: update and download required packages
       run: sudo apt update && sudo apt install -y git bc bison flex libssl-dev make automake build-essential curl zip clang lld gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi libdebuginfod1 elfutils
 
     - name: clone kernel source
       run: |
         cd ${GITHUB_WORKSPACE}
-        # Determine whether to use --recurse-submodules based on JSON value
         if [ "$RECURSE_SUBMODULE" = "true" ]; then
           git clone --recurse-submodules ${KERNEL_URL} -b ${KERNEL_BRANCH} ${KERNEL_DIR}
         else
@@ -69,7 +79,6 @@ jobs:
         CROSS_COMPILE=aarch64-linux-gnu- \
         CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
         CONFIG_NO_ERROR_ON_MISMATCH=y
-
 
         BUILD_TIME=$(date '+%Y%m%d-%H%M%S')
         echo "BUILD_TIME=$BUILD_TIME" >> $GITHUB_ENV
