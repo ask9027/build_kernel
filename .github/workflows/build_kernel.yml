@@ -125,7 +125,7 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         tag_name: v${{ env.KERNEL_VERSION }}
         name: "Kernel Version ${{ env.KERNEL_VERSION }}"
-        body: '${{ env.KERNEL_VERSION }}-${{ env.KERNEL_TYPE }} for ${{ env.KERNEL_NAME }}'
+        body: '${{ env.KERNEL_VERSION }} for ${{ env.KERNEL_NAME }}'
         draft: false
         prerelease: false
         generate_release_notes: false
