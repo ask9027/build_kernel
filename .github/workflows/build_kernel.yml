@@ -52,10 +52,7 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
-
-    - name: Install jq (for JSON parsing)
-      run: sudo apt-get install jq
+      uses: actions/checkout@v4
 
     - name: update and download required packages
       run: sudo apt update && sudo apt install -y git bc bison flex libssl-dev make automake build-essential curl zip clang lld gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi libdebuginfod1 elfutils
