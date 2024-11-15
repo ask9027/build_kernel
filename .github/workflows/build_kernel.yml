@@ -98,27 +98,14 @@ jobs:
         cp output/* AnyKernel3/
         cd AnyKernel3
 
-        # Modify KERNEL_TYPE based on the branch content
-        if [[ "${KERNEL_BRANCH}" == *"ksu-miui"* ]]; then
-          KERNEL_TYPE="${KERNEL_TYPE}-ksu-miui"
-        elif [[ "${KERNEL_BRANCH}" == *"ksu"* ]]; then
-          KERNEL_TYPE="${KERNEL_TYPE}-ksu"
-        elif [[ "${KERNEL_BRANCH}" == *"miui"* ]]; then
-          KERNEL_TYPE="${KERNEL_TYPE}-miui"
-        fi
-
-        # Export the updated KERNEL_TYPE
-        echo "KERNEL_TYPE=${KERNEL_TYPE}" >> $GITHUB_ENV
-        echo "Updated KERNEL_TYPE: $KERNEL_TYPE"
-
         # Use updated KERNEL_TYPE for the zip file name
-        zip -r9 ../${KERNEL_TYPE}-${KERNEL_VERSION}-${KERNEL_NAME}-${BUILD_TIME}.zip * -x .git README.md *placeholder
+        zip -r9 ../${{ env.KERNEL_TYPE }}-${{ env.KERNEL_BRANCH }}-${KERNEL_VERSION}-${KERNEL_NAME}-${BUILD_TIME}.zip * -x .git README.md *placeholder
         cd ${GITHUB_WORKSPACE}
 
     - name: upload kernel output
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ env.KERNEL_TYPE }}-${{ env.KERNEL_VERSION }}-${{ env.KERNEL_NAME }}
+        name: ${{ env.KERNEL_TYPE }}-${{ env.KERNEL_VERSION }}-${{ env.KERNEL_BRANCH }}-${{ env.KERNEL_NAME }}
         path: ${{ env.KERNEL_TYPE }}*.zip
 
     - name: Create release
@@ -128,7 +115,7 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         tag_name: v${{ env.KERNEL_VERSION }}
         name: "Kernel Version ${{ env.KERNEL_VERSION }}"
-        body: '${{ env.KERNEL_VERSION }}-${{ env.KERNEL_TYPE }} for ${{ env.KERNEL_NAME }}'
+        body: '${{ env.KERNEL_VERSION }}-${{ env.KERNEL_TYPE }}-${{ env.KERNEL_BRANCH }} for ${{ env.KERNEL_NAME }}'
         draft: false
         prerelease: false
         generate_release_notes: false
