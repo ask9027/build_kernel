@@ -66,6 +66,7 @@ jobs:
           git clone ${KERNEL_URL} -b ${KERNEL_BRANCH} ${KERNEL_DIR}
         fi
         if [ -d ${KERNEL_DIR} ]; then
+          cd ${GITHUB_WORKSPACE}/${KERNEL_DIR}
           if [ "$KERNEL_TYPE" == "AlfaKernel" ]; then
             git revert cfdbc7a9d19e48439612eb5114a7bcca686e3d88
             git revert 3d7dca62d027f39f3c87b7aafffb12ca1014058d
@@ -75,7 +76,6 @@ jobs:
             git revert e76fecd803f37be96fd7a0c91ab04bb24c9923af
           fi
         fi
-
     - name: build kernel from source
       run: |
         cd ${GITHUB_WORKSPACE}/${KERNEL_DIR}
