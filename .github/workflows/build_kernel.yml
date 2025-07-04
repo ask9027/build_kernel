@@ -65,21 +65,7 @@ jobs:
         else
           git clone ${KERNEL_URL} -b ${KERNEL_BRANCH} ${KERNEL_DIR}
         fi
-        if [ -d ${KERNEL_DIR} ]; then
-          cd ${GITHUB_WORKSPACE}/${KERNEL_DIR}
-          echo "Removing KernelSU ..."
-          git config user.name "$(git log -n 1 --pretty=format:%an)"
-          git config user.email "$(git log -n 1 --pretty=format:%ae)"
-          
-          if [ "$KERNEL_TYPE" == "AlfaKernel" ]; then
-            git revert cfdbc7a9d19e48439612eb5114a7bcca686e3d88
-            git revert 3d7dca62d027f39f3c87b7aafffb12ca1014058d
-            git revert 5acef92354b4543b2349f88f9ee1bf7b750caf56
-            git revert 604226b3bd81463f46b7842d51dc6b15ddca9e84
-            git revert 4d25d0e0e7b5fb966c1734609f041789fa83ae58
-            git revert e76fecd803f37be96fd7a0c91ab04bb24c9923af
-          fi
-        fi
+        
     - name: build kernel from source
       run: |
         cd ${GITHUB_WORKSPACE}/${KERNEL_DIR}
