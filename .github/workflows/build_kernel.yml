@@ -71,10 +71,21 @@ jobs:
         cd ${GITHUB_WORKSPACE}/${KERNEL_DIR}
         export ARCH=${ARCH}
         make O=out ${KERNEL_NAME}_defconfig
-        make -j$(nproc --all) \
-        O=out CC=clang \
+        make -j$(nproc --all) CC=clang LLVM=1 ARCH=arm64 O=out \
+        HEADER_ARCH=arm64 \
+        SUBARCH=arm64 \
+        CXX=c++ \
+        AR=llvm-ar \
+        NM=llvm-nm \
+        OBJDUMP=llvm-objdump \
+        STRIP=llvm-strip \
+        READELF=llvm-readelf \
+        HOSTCXX=clang++ \
+        HOSTAR=llvm-ar \
+        LLVM_IAS=1 \
         CROSS_COMPILE=aarch64-linux-gnu- \
         CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+        CLANG_TRIPLE=aarch64-linux-gnu-
         CONFIG_NO_ERROR_ON_MISMATCH=y
 
         BUILD_TIME=$(date '+%Y%m%d-%H%M%S')
