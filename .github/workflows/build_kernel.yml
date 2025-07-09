@@ -78,7 +78,7 @@ jobs:
         
         if [ "$IMPLEMENT_KERNELSU_NEXT" = "true" ]; then
           echo "Implementing KernelSu-Next ..."
-          curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -
+          curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -s next
         fi
         
         export ARCH=${ARCH}
