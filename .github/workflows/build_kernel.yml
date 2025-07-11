@@ -23,11 +23,6 @@ on:
         required: true
         default: false
         type: boolean
-      implement_ksu_next:
-        description: "Implement KernelSu-Next if want root"
-        required: true
-        default: false
-        type: boolean
       is_release:
         description: 'Kernel Release at github true or false'
         required: true
@@ -75,11 +70,6 @@ jobs:
     - name: build kernel from source
       run: |
         cd ${GITHUB_WORKSPACE}/${KERNEL_DIR}
-        
-        if [ "$IMPLEMENT_KERNELSU_NEXT" = "true" ]; then
-          echo "Implementing KernelSu-Next ..."
-          curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -s next
-        fi
         
         export ARCH=${ARCH}
         make O=out ${KERNEL_NAME}_defconfig
