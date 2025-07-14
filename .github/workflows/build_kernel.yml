@@ -49,7 +49,6 @@ jobs:
       IS_RELEASE: ${{ github.event.inputs.is_release }}
       RECURSE_SUBMODULE: ${{ github.event.inputs.recurse_submodule }}
       KERNEL_VERSION: 'v0000'
-      IMPLEMENT_KERNELSU_NEXT: ${{ github.event.inputs.implement_ksu_next }}
 
     steps:
     - name: Checkout repository
@@ -62,9 +61,9 @@ jobs:
       run: |
         cd ${GITHUB_WORKSPACE}
         if [ "$RECURSE_SUBMODULE" = "true" ]; then
-          git clone --recurse-submodules ${KERNEL_URL} -b ${KERNEL_BRANCH} ${KERNEL_DIR}
+          git clone --recurse-submodules ${KERNEL_URL} -b ${KERNEL_BRANCH} --single-branch ${KERNEL_DIR}
         else
-          git clone ${KERNEL_URL} -b ${KERNEL_BRANCH} ${KERNEL_DIR}
+          git clone ${KERNEL_URL} -b ${KERNEL_BRANCH} --single-branch ${KERNEL_DIR}
         fi
         
     - name: build kernel from source
