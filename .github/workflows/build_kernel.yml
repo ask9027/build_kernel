@@ -105,9 +105,8 @@ jobs:
       run: |
         git clone https://github.com/ask9027/AnyKernel3.git
         cp output/* AnyKernel3/
-
         cd AnyKernel3
-        sed -i "s/^ *kernel.string=.*/  kernel.string=${KERNEL_NAME} by ${KBUILD_BUILD_USER}@${KBUILD_BUILD_USER}/" anykernel3.sh
+        sed -i "s/^ *kernel.string=.*/  kernel.string=${KERNEL_NAME} by ${KBUILD_BUILD_USER}@${KBUILD_BUILD_USER}/" anykernel.sh
         sed -i "s/^ *device.name1=.*/  device.name1=${DEVICE}/" anykernel.sh
         sed -i "s/^ *device.name2=.*/  device.name2=${DEVICE}in/" anykernel.sh
         sed -i "s/^ *device.name3=.*/  device.name3=/" anykernel.sh
