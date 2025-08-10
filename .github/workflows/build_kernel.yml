@@ -11,7 +11,7 @@ on:
       kernel_branch:
         description: "github branch like 'perf-ksu-miui'"
         required: true
-        default: 'perf-ksu-miui'
+        default: 'A15-KSU'
         type: string
       kernel_name:
         description: 'Kernel name like PerfKernel or AlfaKernel'
@@ -56,7 +56,7 @@ jobs:
 
     - name: update and download required packages
       run: sudo apt update && sudo apt install -y git clang llvm lld build-essential bc libncurses-dev bison flex libssl-dev libelf-dev
-
+      
     - name: clone kernel source
       run: |
         cd ${GITHUB_WORKSPACE}
@@ -70,24 +70,42 @@ jobs:
       run: |
         cd ${GITHUB_WORKSPACE}/${KERNEL_DIR}
         
-        export ARCH=${ARCH}
-        make O=out ${DEVICE}_defconfig
-        make -j$(nproc --all) CC=clang LLVM=1 ARCH=arm64 O=out \
-        HEADER_ARCH=arm64 \
-        SUBARCH=arm64 \
-        CXX=c++ \
-        AR=llvm-ar \
-        NM=llvm-nm \
-        OBJDUMP=llvm-objdump \
-        STRIP=llvm-strip \
-        READELF=llvm-readelf \
-        HOSTCXX=clang++ \
-        HOSTAR=llvm-ar \
-        LLVM_IAS=1 \
-        CROSS_COMPILE=aarch64-linux-gnu- \
-        CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+        # ======================
+        # CCACHE SETUP
+        # ======================
+        export USE_CCACHE=1
+        export CCACHE_EXEC=$(which ccache)
+        export CCACHE_DIR=~/ccache
+        ccache --max-size=10G
+        
+        BUILD_FLAGS=(
+        EXTRAVERSION=""
+        O=out
+        CC='ccache clang'
+        LLVM=1
+        ARCH=arm64
+        HEADER_ARCH=arm64
+        SUBARCH=arm64
+        CXX='ccache c++'
+        AR=llvm-ar
+        NM=llvm-nm
+        OBJCOPY=llvm-objcopy
+        OBJDUMP=llvm-objdump
+        STRIP=llvm-strip
+        READELF=llvm-readelf
+        HOSTCXX='ccache clang++'
+        HOSTAR=llvm-ar
+        LLVM_IAS=1
+        CROSS_COMPILE=aarch64-linux-gnu-
+        CROSS_COMPILE_ARM32=arm-linux-gnueabi-
         CLANG_TRIPLE=aarch64-linux-gnu-
         CONFIG_NO_ERROR_ON_MISMATCH=y
+        CONFIG_DEBUG_SECTION_MISMATCH=y
+        )
+        
+        export ARCH=${ARCH}
+        make O=out ${DEVICE}_defconfig
+        make -j$(nproc --all) "${BUILD_FLAGS[@]}"
 
         BUILD_TIME=$(date '+%Y%m%d-%H%M%S')
         echo "BUILD_TIME=$BUILD_TIME" >> $GITHUB_ENV
